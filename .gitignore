@@ -1,0 +1,8 @@
+
+src/\.idea/
+
+src/\.mono/
+
+src/\.import/
+
+*.DotSettings
