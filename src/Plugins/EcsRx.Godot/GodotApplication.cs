@@ -1,19 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
 using EcsRx.Collections;
-using EcsRx.Events;
-using EcsRx.Executor;
-using EcsRx.Extensions;
+using EcsRx.Collections.Database;
 using EcsRx.Infrastructure;
-using EcsRx.Infrastructure.Dependencies;
-using EcsRx.Infrastructure.Extensions;
 using EcsRx.Infrastructure.Modules;
 using EcsRx.Infrastructure.Ninject;
-using EcsRx.Infrastructure.Plugins;
 using EcsRx.Plugins.ReactiveSystems;
 using EcsRx.Plugins.Views;
-using EcsRx.Systems;
 using Godot;
+using SystemsRx.Events;
+using SystemsRx.Executor;
+using SystemsRx.Extensions;
+using SystemsRx.Infrastructure.Dependencies;
+using SystemsRx.Infrastructure.Extensions;
+using SystemsRx.Infrastructure.Modules;
+using SystemsRx.Infrastructure.Plugins;
+using SystemsRx.Systems;
 
 namespace EcsRx.Godot
 {
@@ -23,11 +25,12 @@ namespace EcsRx.Godot
 
         public ISystemExecutor SystemExecutor { get; private set; }
         public IEventSystem EventSystem { get; private set; }
-        public IEntityCollectionManager EntityCollectionManager { get; private set; }
-        public IEnumerable<IEcsRxPlugin> Plugins => _plugins;
+        public IEntityDatabase EntityDatabase { get; private set; }
+        public IObservableGroupManager ObservableGroupManager { get; private set; }
+        public IEnumerable<ISystemsRxPlugin> Plugins => _plugins;
         
-        private List<IEcsRxPlugin> _plugins { get; } = new List<IEcsRxPlugin>();
-        
+        private List<ISystemsRxPlugin> _plugins { get; } = new List<ISystemsRxPlugin>();
+
         protected abstract void ApplicationStarted();
 
         public override void _EnterTree()
@@ -74,6 +77,7 @@ namespace EcsRx.Godot
         /// </remarks>
         protected virtual void LoadModules()
         {
+            Container.LoadModule<EcsRxInfrastructureModule>();
             Container.LoadModule<FrameworkModule>();
         }
         
@@ -83,11 +87,12 @@ namespace EcsRx.Godot
         /// <remarks>By default it will setup SystemExecutor, EventSystem, EntityCollectionManager</remarks>
         protected virtual void ResolveApplicationDependencies()
         {
-            SystemExecutor = Container.Resolve<ISystemExecutor>();
             EventSystem = Container.Resolve<IEventSystem>();
-            EntityCollectionManager = Container.Resolve<IEntityCollectionManager>();
+            SystemExecutor = Container.Resolve<ISystemExecutor>();
+            EntityDatabase = Container.Resolve<IEntityDatabase>();
+            ObservableGroupManager = Container.Resolve<IObservableGroupManager>();
         }
-        
+
         /// <summary>
         /// Bind any systems that the application will need
         /// </summary>
@@ -98,7 +103,7 @@ namespace EcsRx.Godot
         protected virtual void StopAndUnbindAllSystems()
         {
             var allSystems = SystemExecutor.Systems.ToList();
-            allSystems.ForEachRun(SystemExecutor.RemoveSystem);
+            allSystems.ForEach(SystemExecutor.RemoveSystem);
             Container.Unbind<ISystem>();
         }
 
@@ -110,7 +115,7 @@ namespace EcsRx.Godot
         { this.StartAllBoundSystems(); }
         
         protected virtual void SetupPlugins()
-        { _plugins.ForEachRun(x => x.SetupDependencies(Container)); }
+        { _plugins.ForEach(x => x.SetupDependencies(Container)); }
 
         protected virtual void StartPluginSystems()
         {
@@ -118,7 +123,7 @@ namespace EcsRx.Godot
                 .ForEachRun(x => SystemExecutor.AddSystem(x));
         }
 
-        protected void RegisterPlugin(IEcsRxPlugin plugin)
+        protected void RegisterPlugin(ISystemsRxPlugin plugin)
         { _plugins.Add(plugin); }
     }
 }
