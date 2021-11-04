@@ -8,7 +8,7 @@ namespace Scripts.HelloWorld
     {
         protected override void ApplicationStarted()
         {
-            var collection = EntityCollectionManager.GetCollection();
+            var collection = EntityDatabase.GetCollection();
             var entity = collection.CreateEntity();
 
             var helloComponent = new SayHelloComponent
